@@ -1,5 +1,5 @@
-const express = require("express");
-import User from '../models/User.model'
+import express from 'express';
+import User from '../models/User.model.js'
 
 const router = express.Router();
 
@@ -13,4 +13,4 @@ router.post("/add-user", async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;
