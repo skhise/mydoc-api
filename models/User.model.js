@@ -28,7 +28,6 @@ const User = sequelize.define(
     },
     lastLogin:{
         type:DataTypes.DATE,
-        allowNull:false
     },
   },
   {
