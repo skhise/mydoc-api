@@ -1,39 +1,185 @@
 import User from "../models/User.model.js";
+import bcrypt from 'bcrypt';
+import dotenv from "dotenv";
+import jwt from 'jsonwebtoken';
+
+dotenv.config();
+const saltRounds = 10;
 
 export const registerUser = async (req, res) => {
     try {
-        const { name, email } = req.body;
-        const user = await User.create({ name, email,password });
-        res.status(201).json(user);
+        const { name, email, password, permissions, lastLogin } = req.body;
+        if (!name || !email || !password || !permissions) {
+            return res.status(400).json({
+                error: "All fields are required: name, email, password, permissions, lastLogin."
+            });
+        }
+        const validPermissions = ['admin', 'user', 'guest'];
+        if (!validPermissions.includes(permissions)) {
+            return res.status(400).json({
+                error: "Invalid permission value. Valid values are 'admin', 'user', and 'guest'."
+            });
+        }
+
+        const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                error: "Invalid email format."
+            });
+        }
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const user = await User.create({
+            name, email,
+            password: hashedPassword,
+            permissions,
+            lastLogin: new Date(),
+        });
+        res.json({
+            success: true,
+            message: "User created successfully",
+            user: user
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message, details: error.errors });
     }
 };
 
 export const listUsers = async(req,res) =>{
-    try{
-        const users = User.findAll();
-        res.status(200).json(users);
-    }catch(error){
-        res.status(500).json({ error: error.message });
+    try {
+        const users = await User.findAll();
+        res.status(200).json({
+            success: true,
+            message: "Users fetched successfully",
+            users
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: error.message
+        });
+    }
+}
+
+export const getUser = async(req,res) =>{
+    try {
+        const { id } = req.params;
+        const user = await User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+        res.json({
+            success: true,
+            message: "User fetch successfully",
+            user: user
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message, details: error.errors });
+    }
+}
+
+export const updateUser = async(req,res) =>{
+    try {
+        const { id } = req.params;
+        const { name, email, password, permissions, lastLogin } = req.body;
+
+        if (!name || !email || !password || !permissions || !lastLogin) {
+            return res.status(400).json({
+                error: "All fields are required: name, email, password, permissions, lastLogin."
+            });
+        }
+
+        const user = await User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
+
+        await user.update({
+            name,
+            email,
+            password: hashedPassword,
+            permissions,
+            lastLogin,
+        });
+
+        res.json({
+            success: true,
+            message: "User updated successfully",
+            user: user
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message, details: error.errors });
+    }
+}
+export const deleteUser = async(req,res) =>{
+    try {
+        const { id } = req.params; 
+
+        const user = await User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({ success: false, error: "User not found." });
+        }
+
+        await user.destroy();
+
+        res.json({
+            success: true,
+            message: "User deleted successfully"
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 }
 
 export const loginUser = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, password } = req.body;
 
-        // Find user by email
+        if (!email || !password) {
+            return res.status(400).json({
+                error: "Both email and password are required."
+            });
+        }
+
         const user = await User.findOne({ where: { email } });
 
         if (!user) {
-            return res.status(404).json({ error: "User not found" });
+            return res.status(404).json({
+                error: "User not found"
+            });
         }
 
-        // For simplicity, we're not checking a password here.
-        // In a real app, use hashed passwords and validate them.
-        res.status(200).json({ message: "Login successful", user });
+        const validPassword = await bcrypt.compare(password, user.password);
+
+        if (!validPassword) {
+            return res.status(400).json({
+                error: "Invalid password"
+            });
+        }
+
+        user.lastLogin = new Date();
+        await user.save();
+
+        const token = jwt.sign(
+            { id: user.id, name: user.name, email: user.email, permissions: user.permissions },
+            process.env.JWT_SECRET, // Your JWT secret key stored in environment variables
+            { expiresIn: '1h' } // Token expiration time
+          );
+
+        res.status(200).json({
+            message: "Login successful",
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                permissions: user.permissions 
+            }
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({
+            error: error.message
+        });
     }
 };

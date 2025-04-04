@@ -6,7 +6,7 @@ import sequelize from "./config/db.config.js";
 const app = express();
 app.use(express.json());
 
-app.use("/api/users", userRoutes);
+app.use("/api", userRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/reminders", reminderRoutes);
 
