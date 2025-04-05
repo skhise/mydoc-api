@@ -1,6 +1,5 @@
 import express from 'express';
-
-import User from '../models/User.model.js'
+import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -13,6 +12,8 @@ import {
     loginUser
 } from '../controllers/userController.js';
 
+router.use(authenticateToken);
+
 
 router.post("/registerUser", registerUser);
 
@@ -24,6 +25,5 @@ router.put("/user/:id", updateUser);
 
 router.delete("/deleteUser/:id", deleteUser);
 
-router.post("/login", loginUser);
 
 export default router;

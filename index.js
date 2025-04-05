@@ -1,12 +1,24 @@
 import express from "express";
 import userRoutes from "./routes/userRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
-import reminderRoutes from "./routes/reminderRoutes.js"
+import reminderRoutes from "./routes/reminderRoutes.js";
 import sequelize from "./config/db.config.js";
-const app = express();
-app.use(express.json());
+import bcrypt from 'bcrypt';
 
+const app = express();
+
+app.use(express.json({
+  strict: true
+}));
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ success: false, message: 'Invalid JSON in request' });
+  }
+  next();
+});
 app.use("/api", userRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/reminders", reminderRoutes);
 
@@ -20,5 +32,5 @@ app.use("/api/reminders", reminderRoutes);
   })();
 
 app.listen(5000, () => {
-    console.log("Server is running on port 3000");
+    console.log("Server is running on port 5000");
 });
