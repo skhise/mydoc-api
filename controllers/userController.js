@@ -8,16 +8,17 @@ const saltRounds = 10;
 
 export const registerUser = async (req, res) => {
     try {
-        const { name, email, password, permissions, lastLogin } = req.body;
-        if (!name || !email || !password || !permissions) {
+        const { name, email, password, permission,mobile} = req.body;
+        if (!name || !email || !password || !permission) {
             return res.status(400).json({
-                error: "All fields are required: name, email, password, permissions, lastLogin."
+                error: "All fields are required: name, email, password, permissions."
             });
         }
-        const validPermissions = ['admin', 'user', 'guest'];
-        if (!validPermissions.includes(permissions)) {
+        const validPermissions = ['all', 'add', 'view', 'download', 'share'];
+        console.log("validPermissions--->",permission);
+        if (!Array.isArray(permission) || !permission.every(p => validPermissions.includes(p))) {
             return res.status(400).json({
-                error: "Invalid permission value. Valid values are 'admin', 'user', and 'guest'."
+              error: "Invalid permission value. Valid values are: all, add, view, download, share."
             });
         }
 
@@ -29,17 +30,18 @@ export const registerUser = async (req, res) => {
         }
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const user = await User.create({
-            name, email,
+            name, email,mobile,
             password: hashedPassword,
-            permissions,
+            permissions:permission.join(","),
             lastLogin: new Date(),
         });
-        res.json({
+        res.status(201).json({
             success: true,
             message: "User created successfully",
             user: user
         });
     } catch (error) {
+        console.log(error);
         res.status(500).json({ error: error.message, details: error.errors });
     }
 };
