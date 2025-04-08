@@ -20,7 +20,7 @@ app.use((err, req, res, next) => {
 app.use("/api", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", documentRoutes);
-app.use("/api/reminders", reminderRoutes);
+app.use("/api", reminderRoutes);
 
 (async () => {
     try {
