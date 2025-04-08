@@ -15,7 +15,6 @@ export const registerUser = async (req, res) => {
             });
         }
         const validPermissions = ['all', 'add', 'view', 'download', 'share'];
-        console.log("validPermissions--->",permission);
         if (!Array.isArray(permission) || !permission.every(p => validPermissions.includes(p))) {
             return res.status(400).json({
               error: "Invalid permission value. Valid values are: all, add, view, download, share."
@@ -81,11 +80,11 @@ export const getUser = async(req,res) =>{
 export const updateUser = async(req,res) =>{
     try {
         const { id } = req.params;
-        const { name, email, password, permissions, lastLogin } = req.body;
+        const { name, email, password, permission, lastLogin } = req.body;
 
-        if (!name || !email || !password || !permissions || !lastLogin) {
+        if (!name || !email || !password || !permission || !lastLogin) {
             return res.status(400).json({
-                error: "All fields are required: name, email, password, permissions, lastLogin."
+                error: "All fields are required: name, email, password, permission, lastLogin."
             });
         }
 
@@ -94,13 +93,21 @@ export const updateUser = async(req,res) =>{
             return res.status(404).json({ error: "User not found." });
         }
 
+         // Check for email conflict ONLY if email has changed
+        if (email !== user.email) {
+            const existingUser = await User.findOne({ where: { email } });
+            if (existingUser) {
+             return res.status(400).json({ error: "Email already in use by another user." });
+            }
+        }
+
         const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
 
         await user.update({
             name,
             email,
             password: hashedPassword,
-            permissions,
+            permission,
             lastLogin,
         });
 
