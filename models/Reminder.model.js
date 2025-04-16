@@ -19,8 +19,7 @@ const Reminder = sequelize.define(
     },
     time: {
       type: DataTypes.TIME,
-      allowNull: false,
-      unique: true,
+      allowNull: false
     },
     description: {
       type: DataTypes.STRING,

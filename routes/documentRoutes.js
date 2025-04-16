@@ -1,5 +1,5 @@
 import express from "express";
-import { listDocuments, uploadFile } from "../controllers/documentController.js";
+import { listDocuments, uploadFile, getDocumentsByUploader,getDocumentById,deleteDocumentById } from "../controllers/documentController.js";
 import multer from 'multer';
 
 import { authenticateToken } from '../middleware/authMiddleware.js';
@@ -10,10 +10,12 @@ const storage = multer.memoryStorage(); // use memory to prepare for S3 upload
 const upload = multer({ storage });
 
 router.use(authenticateToken);
-// Register User
-router.post('/upload', upload.single('file'), uploadFile);
 
-router.get("/list", listDocuments);
+router.post('/upload', upload.single('file'), uploadFile);
+router.get("/getList", listDocuments);
+router.get("/getListByUserId/:uploaderId", getDocumentsByUploader);
+router.get("/getDocumentById/:id", getDocumentById);
+router.delete('/deleteDoc/:id', deleteDocumentById);
 
 
 export default router;

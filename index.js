@@ -4,7 +4,7 @@ import authRoutes from "./routes/authRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 import reminderRoutes from "./routes/reminderRoutes.js";
 import sequelize from "./config/db.config.js";
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const app = express();
 
@@ -19,7 +19,7 @@ app.use((err, req, res, next) => {
 });
 app.use("/api", userRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/", documentRoutes);
+app.use("/api/docs/", documentRoutes);
 app.use("/api", reminderRoutes);
 
 (async () => {
