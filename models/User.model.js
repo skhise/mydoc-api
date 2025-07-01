@@ -18,17 +18,13 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
     mobile: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    password: {
+    pin: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
     permissions: {
       type: DataTypes.STRING,
@@ -36,6 +32,9 @@ const User = sequelize.define(
     },
     lastLogin:{
         type:DataTypes.DATE,
+    },
+    fcmToken:{
+        type:DataTypes.STRING,
     },
   },
   {

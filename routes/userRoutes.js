@@ -9,7 +9,8 @@ import {
     getUser,
     updateUser,
     deleteUser,
-    loginUser
+    loginUser,
+    updateUserToken
 } from '../controllers/userController.js';
 
 router.use(authenticateToken);
@@ -24,6 +25,7 @@ router.get("/getUser/:id", getUser);
 router.put("/user/:id", updateUser);
 
 router.delete("/deleteUser/:id", deleteUser);
+router.delete("/update-token/:id", updateUserToken);
 
 
 export default router;

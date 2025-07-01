@@ -143,6 +143,23 @@ export const listDocuments = async (req, res) => {
   
   
 };
+export const getFevList = async (req, res) => {
+  try {
+  const  documents = await Document.findAll({where:{
+    is_fev:1
+  }});
+  
+    res.status(200).json({
+      success: true,
+      documents,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+  
+  
+  
+};
 export const getFolders = async (req, res) => {
   try {
     const folders = await Folder.findAll();
@@ -217,6 +234,30 @@ export const deleteDocumentById = async (req, res) => {
     res.status(200).json({
       success: true,
       message: `Document with ID ${id} deleted successfully.`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+export const deleteFolderById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "Folder details missing" });
+    }
+
+    const document = await Folder.findByPk(id);
+
+    if (!document) {
+      return res.status(404).json({ error: "Folder not found" });
+    }
+
+    await document.destroy(); // Deletes the record
+
+    res.status(200).json({
+      success: true,
+      message: `Folder deleted successfully.`,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

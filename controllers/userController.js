@@ -8,30 +8,24 @@ const saltRounds = 10;
 
 export const registerUser = async (req, res) => {
     try {
-        const { name, email, password, permission,mobile} = req.body;
-        if (!name || !email || !password || !permission) {
+        const { name, email, mobile} = req.body;
+        if (!name || !mobile) {
             return res.status(400).json({
-                message: "All fields are required: name, email, password, permissions."
-            });
-        }
-        const validPermissions = ['all', 'add', 'view', 'download', 'share'];
-        if (!Array.isArray(permission) || !permission.every(p => validPermissions.includes(p))) {
-            return res.status(400).json({
-                message: "Invalid permission value. Valid values are: all, add, view, download, share."
+                message: "All fields are required: name, email, mobile."
             });
         }
 
         const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
-        if (!emailRegex.test(email)) {
+        if (email !="" && !emailRegex.test(email)) {
             return res.status(400).json({
                 message: "Invalid email format."
             });
         }
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        // const hashedPassword = await bcrypt.hash(password, saltRounds);
         const user = await User.create({
             name, email,mobile,
-            password: hashedPassword,
-            permissions:permission.join(","),
+            password: '',
+            permissions:'',
             lastLogin: new Date(),
         });
         res.status(201).json({
@@ -143,23 +137,23 @@ export const deleteUser = async(req,res) =>{
 
 export const loginUser = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { mobile, pin } = req.body;
 
-        if (!email || !password) {
+        if (!mobile || !pin) {
             return res.status(400).json({
-                message: "Both email and password are required."
+                message: "Both mobile and pin are required."
             });
         }
 
-        const user = await User.findOne({ where: { email } });
-
+        const user = await User.findOne({ where: { mobile } });
+        console.log(pin);
         if (!user) {
             return res.status(404).json({
                 message: "User not found"
             });
         }
 
-        const validPassword = await bcrypt.compare(password, user.password);
+        const validPassword = await bcrypt.compare(pin, user.pin);
 
         if (!validPassword) {
             return res.status(400).json({
@@ -171,7 +165,7 @@ export const loginUser = async (req, res) => {
         await user.save();
 
         const token = jwt.sign(
-            { id: user.id, name: user.name, email: user.email, permissions: user.permissions },
+            { id: user.id, name: user.name, mobile: user.mobile, permissions: user.permissions },
             process.env.JWT_SECRET, // Your JWT secret key stored in environment variables
             { expiresIn: '1h' } // Token expiration time
           );
@@ -182,9 +176,42 @@ export const loginUser = async (req, res) => {
             user: {
                 id: user.id,
                 name: user.name,
-                email: user.email,
+                mobile: user.mobile,
                 permissions: user.permissions 
             }
+        });
+    } catch (error) {;
+        res.status(500).json({
+            error: error.message
+        });
+    }
+};
+
+export const resetPin = async (req, res) => {
+    try {
+        const { mobile, pin } = req.body;
+
+        if (!mobile || !pin) {
+            return res.status(400).json({
+                message: "Both mobile and pin are required."
+            });
+        }
+
+        const user = await User.findOne({ where: { mobile } });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        const validPassword = await bcrypt.hash(pin,10);
+
+        user.pin = validPassword;
+        await user.save();
+
+        res.status(200).json({
+            message: "Login pin set successful",
         });
     } catch (error) {
         console.log("error--->",error);
@@ -193,3 +220,33 @@ export const loginUser = async (req, res) => {
         });
     }
 };
+export const updateUserToken = async(req,res) =>{
+    try {
+        const { id } = req.params;
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                message: "Failed to update token, try again."
+            });
+        }
+
+        const user = await User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        await user.update({
+            fcmToken:token
+        });
+
+        res.json({
+            success: true,
+            message: "User token updated successfully",
+            user: user
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message, details: error.errors });
+    }
+}

@@ -1,5 +1,5 @@
 import express from "express";
-import { getFolders,listDocuments, uploadFile, getDocumentsByUploader,getDocumentById,deleteDocumentById, getSignedFileUrl } from "../controllers/documentController.js";
+import { getFolders,listDocuments, uploadFile, getDocumentsByUploader,getDocumentById,deleteDocumentById, getSignedFileUrl, getFevList, deleteFolderById } from "../controllers/documentController.js";
 import multer from 'multer';
 
 import { authenticateToken } from '../middleware/authMiddleware.js';
@@ -13,10 +13,12 @@ router.use(authenticateToken);
 
 router.post('/upload', upload.single('file'), uploadFile);
 router.get("/getList", listDocuments);
+router.get("/get-fev-list", getFevList);
 router.get("/getFolders", getFolders);
 router.get("/getListByUserId/:uploaderId", getDocumentsByUploader);
 router.get("/getDocumentById/:id", getDocumentById);
-router.delete('/deleteDoc/:id', deleteDocumentById);
+router.delete('/delete/:id', deleteDocumentById);
+router.delete('/folder/:id', deleteFolderById);
 router.get('/get-signed-url', getSignedFileUrl);
 
 

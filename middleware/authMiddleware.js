@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 
 export const authenticateToken = (req, res, next) => {
-  const openPaths = ['/auth/login', '/auth/forgot-password']; // add any other routes you want to exclude
-
+  const openPaths = ['/auth/login', '/auth/forgot-password','/reset-pin']; // add any other routes you want to exclude
+  console.log(req.path);
   // Skip token check for open paths
   if (openPaths.includes(req.path)) {
     return next();

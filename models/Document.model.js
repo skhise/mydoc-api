@@ -33,6 +33,11 @@ const Document = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    is_fev:{
+      type:DataTypes.INTEGER,
+      allowNull:true,
+      defaultValue:0
+    }
   },
   {
     timestamps: true, // Adds createdAt & updatedAt automatically

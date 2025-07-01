@@ -28,6 +28,14 @@ const Reminder = sequelize.define(
     created_by:{
       type:DataTypes.INTEGER,
       allowNull:false,
+    },
+    is_repeated:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false,
+    },
+    days_before:{
+      type:DataTypes.INTEGER,
+      allowNull:false,
     }
   },
   {

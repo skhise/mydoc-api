@@ -2,16 +2,15 @@ import Reminder from "../models/Reminder.model.js";
 
 export const createReminder = async (req, res) => {
     try {
-        const { name, date,time,description,created_by } = req.body;
+        const { name, date,time,description,created_by,is_repeated=false,days_before=0, } = req.body;
         if (!name || !date || !time || !description) {
             return res.status(400).json({
                 error: "All fields are required: name, date, time, description."
             });
         }
-        const reminder = await Reminder.create({ name, date,time,description,created_by });
+        const reminder = await Reminder.create({ name, date,time,description,created_by,is_repeated,days_before });
         res.status(201).json(reminder);
     } catch (error) {
-      console.log("error---->",error);
         res.status(500).json({ error: error.message });
     }
 };
