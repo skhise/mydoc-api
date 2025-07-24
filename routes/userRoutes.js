@@ -10,13 +10,38 @@ import {
     updateUser,
     deleteUser,
     loginUser,
-    updateUserToken
+    updateUserToken,
+    validateRegisterUser
 } from '../controllers/userController.js';
 
 router.use(authenticateToken);
 
-
-router.post("/registerUser", registerUser);
+/**
+ * @swagger
+ * /api/users/registerUser:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               mobile:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Validation error
+ */
+router.post("/registerUser", validateRegisterUser, registerUser);
 
 router.get("/users", listUsers);
 

@@ -14,7 +14,7 @@ const Reminder = sequelize.define(
       allowNull: false,
     },
     date: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATEONLY,
       allowNull: false,
     },
     time: {
@@ -36,6 +36,10 @@ const Reminder = sequelize.define(
     days_before:{
       type:DataTypes.INTEGER,
       allowNull:false,
+    },
+    count:{
+        type:DataTypes.INTEGER,
+        defaultValue:0,
     }
   },
   {

@@ -8,7 +8,9 @@ export const createReminder = async (req, res) => {
                 error: "All fields are required: name, date, time, description."
             });
         }
-        const reminder = await Reminder.create({ name, date,time,description,created_by,is_repeated,days_before });
+        const utcDate = new Date(`${date}`);
+
+        const reminder = await Reminder.create({ name, date:utcDate,time,description,created_by,is_repeated,days_before,count:0 });
         res.status(201).json(reminder);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -52,7 +54,7 @@ export const getReminderByUserID = async (req, res) => {
   };
  
 
-export const getReminderByReminderID = async(req,res) =>{
+export const getReminderByReminderID = async(req,res) => {
     try {
         const { id } = req.params; 
         if (!id) {

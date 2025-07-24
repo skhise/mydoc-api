@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.config.js";
+import Folder from "./Folder.model.js";
 
 const Document = sequelize.define(
   "Document",
