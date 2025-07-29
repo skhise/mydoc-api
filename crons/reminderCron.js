@@ -5,8 +5,8 @@ import User from '../models/User.model.js';
 import Reminder from '../models/Reminder.model.js';
 import moment from 'moment';
 
-// Daily at 9 AM
-cron.schedule('0 9 * * *', async () => {
+// Daily at 6 AM
+cron.schedule('0 6 * * *', async () => {
   await runReminderCheck();
 });
 

@@ -50,7 +50,7 @@ router.get("/getUser/:id", getUser);
 router.put("/user/:id", updateUser);
 
 router.delete("/deleteUser/:id", deleteUser);
-router.delete("/update-token/:id", updateUserToken);
+router.post("/update-token/:id", updateUserToken);
 
 
 export default router;

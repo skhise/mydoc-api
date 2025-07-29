@@ -182,6 +182,7 @@ export const loginUser = async (req, res) => {
         id: user.id,
         name: user.name,
         mobile: user.mobile,
+        role: user.role,
         permissions: user.permissions,
       },
       process.env.JWT_SECRET, // Your JWT secret key stored in environment variables

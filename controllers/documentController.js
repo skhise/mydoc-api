@@ -186,10 +186,34 @@ export const getFevList = async (req, res) => {
 };
 export const getFolders = async (req, res) => {
   try {
-    const folders = await Folder.findAll();
+    const folders = await Folder.findAll({
+      include: [
+        {
+          model: Document,
+          as: 'documents',
+          attributes: [], // Don't include document data, just count
+        },
+      ],
+      attributes: {
+        include: [
+          [sequelize.fn('COUNT', sequelize.col('documents.id')), 'fileCount']
+        ]
+      },
+      group: ['Folder.id'],
+    });
+
+    // Transform the result to have a cleaner structure
+    const foldersWithCount = folders.map(folder => ({
+      id: folder.id,
+      name: folder.name,
+      fileCount: parseInt(folder.dataValues.fileCount) || 0,
+      createdAt: folder.createdAt,
+      updatedAt: folder.updatedAt
+    }));
+
     res.status(200).json({
       success: true,
-      folders,
+      folders: foldersWithCount,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

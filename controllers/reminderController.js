@@ -2,15 +2,15 @@ import Reminder from "../models/Reminder.model.js";
 
 export const createReminder = async (req, res) => {
     try {
-        const { name, date,time,description,created_by,is_repeated=false,days_before=0, } = req.body;
-        if (!name || !date || !time || !description) {
+        const { name, date,description,created_by,is_repeated=false,days_before=0, } = req.body;
+        if (!name || !date || !description) {
             return res.status(400).json({
-                error: "All fields are required: name, date, time, description."
+                error: "All fields are required: name, date, description."
             });
         }
         const utcDate = new Date(`${date}`);
 
-        const reminder = await Reminder.create({ name, date:utcDate,time,description,created_by,is_repeated,days_before,count:0 });
+        const reminder = await Reminder.create({ name, date:utcDate,description,created_by,is_repeated,days_before,count:0 });
         res.status(201).json(reminder);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -103,7 +103,7 @@ export const deleteReminderByID = async (req, res) => {
   export const updateReminderByID = async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, date,time,description,created_by } = req.body;
+      const { name, date,description,created_by } = req.body;
       
       const reminder = await Reminder.findByPk(id);
   
@@ -115,7 +115,6 @@ export const deleteReminderByID = async (req, res) => {
         name: name ?? reminder.title,
         description: description ?? reminder.description,
         date: date ?? reminder.date,
-        time: time ?? reminder.time,
         created_by: created_by ?? reminder.created_by,
       });
   
