@@ -11,7 +11,9 @@ import {
     deleteUser,
     loginUser,
     updateUserToken,
-    validateRegisterUser
+    validateRegisterUser,
+    getPartners,
+    getProfile
 } from '../controllers/userController.js';
 
 router.use(authenticateToken);
@@ -44,6 +46,10 @@ router.use(authenticateToken);
 router.post("/registerUser", validateRegisterUser, registerUser);
 
 router.get("/users", listUsers);
+
+router.get("/profile", getProfile);
+
+router.get("/partners", getPartners);
 
 router.get("/getUser/:id", getUser);
 

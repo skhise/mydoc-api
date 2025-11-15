@@ -3,8 +3,12 @@ import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 import reminderRoutes from "./routes/reminderRoutes.js";
+import projectRoutes from "./routes/projectRoutes.js";
+import expenseRoutes from "./routes/expenseRoutes.js";
+import expenseNotificationSettingsRoutes from "./routes/expenseNotificationSettingsRoutes.js";
 import sequelize from "./config/db.config.js";
 import './crons/reminderCron.js';
+import './crons/expenseNotificationCron.js';
 
 import bcrypt from 'bcryptjs';
 import swaggerUi from 'swagger-ui-express';
@@ -42,6 +46,9 @@ app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/docs", documentRoutes);
 app.use("/api", reminderRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/expense-notification-settings", expenseNotificationSettingsRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 (async () => {

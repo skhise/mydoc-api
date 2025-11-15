@@ -18,7 +18,7 @@ export const registerUser = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
   try {
-    const { name, mobile } = req.body;
+    const { name, mobile, role } = req.body;
     if (!name || !mobile) {
       return res.status(400).json({
         message: "All fields are required: name, email, mobile.",
@@ -36,6 +36,7 @@ export const registerUser = async (req, res) => {
       mobile,
       password: "",
       permissions: "",
+      role: role ? parseInt(role) : 2, // Default to user role (2) if not provided
       lastLogin: new Date(),
     });
     res.status(201).json({
@@ -54,6 +55,27 @@ export const listUsers = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Users fetched successfully",
+      users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+export const getPartners = async (req, res) => {
+  try {
+    // NOTE: Adjust the role value based on your database schema
+    // If "partner" role is stored differently, update the role value here
+    // Common role values: 1=admin, 2=user, 3=partner (adjust as needed)
+    const users = await User.findAll({ 
+      where: { role: 3 },
+      attributes: ['id', 'name', 'mobile', 'role']
+    });
+    res.status(200).json({
+      success: true,
+      message: "Partners fetched successfully",
       users,
     });
   } catch (error) {
@@ -83,12 +105,11 @@ export const getUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, mobile, password, permission, lastLogin } = req.body;
+    const { name, mobile, password, permission, role, lastLogin } = req.body;
 
-    if (!name || !password || !lastLogin) {
+    if (!name || !mobile) {
       return res.status(400).json({
-        message:
-          "All fields are required: name, email, password, permission, lastLogin.",
+        message: "Name and mobile are required.",
       });
     }
 
@@ -97,7 +118,7 @@ export const updateUser = async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
-    // Check for email conflict ONLY if email has changed
+    // Check for mobile conflict ONLY if mobile has changed
     if (mobile !== user.mobile) {
       const existingUser = await User.findOne({ where: { mobile } });
       if (existingUser) {
@@ -107,16 +128,39 @@ export const updateUser = async (req, res) => {
       }
     }
 
-    const hashedPassword = password
-      ? await bcrypt.hash(password, 10)
-      : user.password;
-
-    await user.update({
+    // Prepare update data
+    const updateData = {
       name,
-      password: hashedPassword,
-      permission,
-      lastLogin,
-    });
+      mobile,
+    };
+
+    // Update permission (handle both singular and plural field names)
+    if (permission !== undefined) {
+      updateData.permissions = permission;
+    }
+
+    // Update lastLogin if provided, otherwise keep existing
+    if (lastLogin) {
+      updateData.lastLogin = new Date(lastLogin);
+    } else if (!user.lastLogin) {
+      updateData.lastLogin = new Date();
+    }
+
+    // Update role if provided
+    if (role !== undefined) {
+      updateData.role = role;
+    }
+
+    // Update password only if provided
+    if (password && password.trim() !== '') {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
+
+    await user.update(updateData);
+    
+    // Reload user to get updated data
+    await user.reload();
 
     res.json({
       success: true,
@@ -196,12 +240,44 @@ export const loginUser = async (req, res) => {
         id: user.id,
         name: user.name,
         mobile: user.mobile,
+        role: user.role,
         permissions: user.permissions,
       },
     });
   } catch (error) {
     res.status(500).json({
       error: error.message,
+    });
+  }
+};
+
+// Get current user profile based on token
+export const getProfile = async (req, res) => {
+  try {
+    // req.user is set by authMiddleware after token verification
+    const userId = req.user.id;
+    
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found." 
+      });
+    }
+
+    res.json({
+      success: true,
+      id: user.id,
+      name: user.name,
+      mobile: user.mobile,
+      role: user.role,
+      permissions: user.permissions,
+      lastLogin: user.lastLogin,
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
     });
   }
 };
