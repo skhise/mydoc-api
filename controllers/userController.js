@@ -18,15 +18,16 @@ export const registerUser = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
   try {
-    const { name, mobile, role, permission } = req.body;
+    const { name, mobile, role, permission, permissions: permissionsField } = req.body;
     if (!name || !mobile) {
       return res.status(400).json({
         message: "All fields are required: name, email, mobile.",
       });
     }
+    const rawPermission = permission ?? permissionsField ?? 'all';
     const permissionValue =
-      permission && permission.trim() !== ''
-        ? permission.trim().toLowerCase()
+      typeof rawPermission === 'string' && rawPermission.trim() !== ''
+        ? rawPermission.trim().toLowerCase()
         : 'all';
     const existingUser = await User.findOne({ 
       where: { 
@@ -127,7 +128,7 @@ export const getUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, mobile, password, permission, role, lastLogin } = req.body;
+    const { name, mobile, password, permission, permissions: permissionsField, role, lastLogin } = req.body;
 
     if (!name || !mobile) {
       return res.status(400).json({
@@ -167,8 +168,12 @@ export const updateUser = async (req, res) => {
     };
 
     // Update permission (handle both singular and plural field names)
-    if (permission !== undefined) {
-      updateData.permissions = permission;
+    if (permission !== undefined || permissionsField !== undefined) {
+      const rawPermission = permission ?? permissionsField ?? 'all';
+      updateData.permissions =
+        typeof rawPermission === 'string' && rawPermission.trim() !== ''
+          ? rawPermission.trim().toLowerCase()
+          : 'all';
     }
 
     // Update lastLogin if provided, otherwise keep existing
