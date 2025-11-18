@@ -117,7 +117,7 @@ export const createExpense = async (req, res) => {
       where: {
         deletedAt: null,
       },
-      attributes: ['id', 'name', 'fcmToken', 'permissions', 'permission'],
+      attributes: ['id', 'name', 'fcmToken', 'permissions'],
     });
 
     // Filter users who should receive notifications
