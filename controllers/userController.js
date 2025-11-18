@@ -18,13 +18,22 @@ export const registerUser = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
   try {
-    const { name, mobile, role } = req.body;
+    const { name, mobile, role, permission } = req.body;
     if (!name || !mobile) {
       return res.status(400).json({
         message: "All fields are required: name, email, mobile.",
       });
     }
-    const existingUser = await User.findOne({ where: { mobile } });
+    const permissionValue =
+      permission && permission.trim() !== ''
+        ? permission.trim().toLowerCase()
+        : 'all';
+    const existingUser = await User.findOne({ 
+      where: { 
+        mobile,
+        deletedAt: null,
+      },
+    });
     if (existingUser) {
       return res
         .status(400)
@@ -35,7 +44,7 @@ export const registerUser = async (req, res) => {
       name,
       mobile,
       password: "",
-      permissions: "",
+      permissions: permissionValue,
       role: role ? parseInt(role) : 2, // Default to user role (2) if not provided
       lastLogin: new Date(),
     });
@@ -51,7 +60,12 @@ export const registerUser = async (req, res) => {
 
 export const listUsers = async (req, res) => {
   try {
-    const users = await User.findAll({ where: { role: 2 } });
+    const users = await User.findAll({ 
+      where: { 
+        role: 2,
+        deletedAt: null,
+      } 
+    });
     res.status(200).json({
       success: true,
       message: "Users fetched successfully",
@@ -70,7 +84,10 @@ export const getPartners = async (req, res) => {
     // If "partner" role is stored differently, update the role value here
     // Common role values: 1=admin, 2=user, 3=partner (adjust as needed)
     const users = await User.findAll({ 
-      where: { role: 3 },
+      where: { 
+        role: 3,
+        deletedAt: null,
+      },
       attributes: ['id', 'name', 'mobile', 'role']
     });
     res.status(200).json({
@@ -88,7 +105,12 @@ export const getPartners = async (req, res) => {
 export const getUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await User.findByPk(id);
+    const user = await User.findOne({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -113,14 +135,24 @@ export const updateUser = async (req, res) => {
       });
     }
 
-    const user = await User.findByPk(id);
+    const user = await User.findOne({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
 
     // Check for mobile conflict ONLY if mobile has changed
     if (mobile !== user.mobile) {
-      const existingUser = await User.findOne({ where: { mobile } });
+      const existingUser = await User.findOne({ 
+        where: { 
+          mobile,
+          deletedAt: null,
+        },
+      });
       if (existingUser) {
         return res
           .status(400)
@@ -175,14 +207,22 @@ export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findByPk(id);
+    const user = await User.findOne({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
     if (!user) {
       return res
         .status(404)
         .json({ success: false, message: "User not found." });
     }
 
-    await user.destroy();
+    // Soft delete: set deletedAt timestamp
+    await user.update({
+      deletedAt: new Date(),
+    });
 
     res.json({
       success: true,
@@ -203,7 +243,12 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ where: { mobile } });
+    const user = await User.findOne({ 
+      where: { 
+        mobile,
+        deletedAt: null,
+      },
+    });
     if (!user) {
       return res.status(404).json({
         message: "User not found",
@@ -257,7 +302,12 @@ export const getProfile = async (req, res) => {
     // req.user is set by authMiddleware after token verification
     const userId = req.user.id;
     
-    const user = await User.findByPk(userId);
+    const user = await User.findOne({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+    });
     if (!user) {
       return res.status(404).json({ 
         success: false,
@@ -325,7 +375,26 @@ export const updateUserToken = async (req, res) => {
       });
     }
 
-    const user = await User.findByPk(id);
+    // Verify that the authenticated user can only update their own token
+    // req.user is set by authMiddleware after token verification
+    const authenticatedUserId = req.user?.id || req.user?.userId;
+    
+    // Convert both to strings for comparison (in case one is a number)
+    const requestedUserId = String(id);
+    const authUserId = String(authenticatedUserId);
+
+    if (authUserId !== requestedUserId) {
+      return res.status(403).json({ 
+        error: "Forbidden: You can only update your own FCM token." 
+      });
+    }
+
+    const user = await User.findOne({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }

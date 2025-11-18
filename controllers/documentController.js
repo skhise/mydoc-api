@@ -147,10 +147,17 @@ export const listDocuments = async (req, res) => {
 
     if (id) {
       documents = await Document.findAll({
-        where: { folderId: id },
+        where: { 
+          folderId: id,
+          deletedAt: null,
+        },
       });
     } else {
-      documents = await Document.findAll();
+      documents = await Document.findAll({
+        where: {
+          deletedAt: null,
+        },
+      });
     }
 
     res.status(200).json({
@@ -166,12 +173,17 @@ export const getFevList = async (req, res) => {
     const documents = await Document.findAll({
       where: {
         is_fev: 1,
+        deletedAt: null,
       },
       include: [
         {
           model: Folder,
           as: 'folder', // use alias if defined in association
           attributes: ['id', 'name'], // select fields you need
+          where: {
+            deletedAt: null,
+          },
+          required: false,
         },
       ],
     });
@@ -187,11 +199,18 @@ export const getFevList = async (req, res) => {
 export const getFolders = async (req, res) => {
   try {
     const folders = await Folder.findAll({
+      where: {
+        deletedAt: null,
+      },
       include: [
         {
           model: Document,
           as: 'documents',
           attributes: [], // Don't include document data, just count
+          where: {
+            deletedAt: null,
+          },
+          required: false,
         },
       ],
       attributes: {
@@ -228,7 +247,10 @@ export const getDocumentsByUploader = async (req, res) => {
     }
 
     const documents = await Document.findAll({
-      where: { uploaded_by: uploaderId },
+      where: { 
+        uploaded_by: uploaderId,
+        deletedAt: null,
+      },
     });
 
     res.status(200).json({
@@ -248,7 +270,12 @@ export const getDocumentById = async (req, res) => {
       return res.status(400).json({ error: "Missing document ID in URL path" });
     }
 
-    const document = await Document.findByPk(id);
+    const document = await Document.findOne({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
 
     if (!document) {
       return res.status(404).json({ error: "Document not found" });
@@ -271,13 +298,21 @@ export const deleteDocumentById = async (req, res) => {
       return res.status(400).json({ error: "Missing document ID in URL path" });
     }
 
-    const document = await Document.findByPk(id);
+    const document = await Document.findOne({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
 
     if (!document) {
       return res.status(404).json({ error: "Document not found" });
     }
 
-    await document.destroy(); // Deletes the record
+    // Soft delete: set deletedAt timestamp
+    await document.update({
+      deletedAt: new Date(),
+    });
 
     res.status(200).json({
       success: true,
@@ -294,7 +329,12 @@ export const markFavById = async (req, res) => {
       return res.status(400).json({ error: "Missing document ID in URL path" });
     }
 
-    const document = await Document.findByPk(id);
+    const document = await Document.findOne({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
 
     if (!document) {
       return res.status(404).json({ error: "Document not found" });
@@ -305,6 +345,7 @@ export const markFavById = async (req, res) => {
     const documents = await Document.findAll({
       where: {
         is_fev: 1,
+        deletedAt: null,
       },
     });
 
@@ -325,13 +366,35 @@ export const deleteFolderById = async (req, res) => {
       return res.status(400).json({ error: "Folder details missing" });
     }
 
-    const document = await Folder.findByPk(id);
+    const folder = await Folder.findOne({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
 
-    if (!document) {
+    if (!folder) {
       return res.status(404).json({ error: "Folder not found" });
     }
 
-    await document.destroy(); // Deletes the record
+    // Check if folder has non-deleted documents
+    const documentCount = await Document.count({
+      where: {
+        folderId: id,
+        deletedAt: null,
+      },
+    });
+
+    if (documentCount > 0) {
+      return res.status(400).json({
+        error: 'Cannot delete folder with existing documents. Please delete all documents first.',
+      });
+    }
+
+    // Soft delete: set deletedAt timestamp
+    await folder.update({
+      deletedAt: new Date(),
+    });
 
     res.status(200).json({
       success: true,

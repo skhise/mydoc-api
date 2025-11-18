@@ -8,8 +8,13 @@ import admin from '../crons/firebase.js';
 // Helper function to send expense notification
 async function sendExpenseNotification(userId, title, body) {
   try {
-    const user = await User.findByPk(userId);
-    if (!user || !user.fcm_token) {
+    const user = await User.findOne({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+    });
+    if (!user || !user.fcmToken) {
       return;
     }
 
@@ -23,7 +28,7 @@ async function sendExpenseNotification(userId, title, body) {
     }
 
     const message = {
-      token: user.fcm_token,
+      token: user.fcmToken,
       notification: { title, body },
     };
 
@@ -93,21 +98,70 @@ export const createExpense = async (req, res) => {
     });
 
     // Get project and user info for notification
-    const project = await Project.findByPk(projectId);
-    const paidByUser = await User.findByPk(paidBy);
-
-    // Send notification to the user who paid (if enabled)
-    const settings = await ExpenseNotificationSettings.findOne({
-      where: { userId: paidBy },
+    const project = await Project.findOne({
+      where: {
+        id: projectId,
+        deletedAt: null,
+      },
+    });
+    const paidByUser = await User.findOne({
+      where: {
+        id: paidBy,
+        deletedAt: null,
+      },
     });
 
-    if (!settings || (settings.enabled && settings.notifyOnAdd)) {
+    // Get all active users (excluding soft-deleted users)
+    // Filter to only users with expense permissions (all, expense) or all users
+    const allUsers = await User.findAll({
+      where: {
+        deletedAt: null,
+      },
+      attributes: ['id', 'name', 'fcmToken', 'permissions', 'permission'],
+    });
+
+    // Filter users who should receive notifications
+    // Include users with 'all' or 'expense' permissions, or if permissions field is empty/null (default to all)
+    const usersToNotify = allUsers.filter(user => {
+      // Exclude the user who paid for the expense
+      if (user.id === parseInt(paidBy)) {
+        return false;
+      }
+      
+      // Include users with 'all' or 'expense' permissions (default empty -> all)
+      const rawPermission = user.permissions ?? user.permission ?? 'all';
+      const permission = rawPermission.toLowerCase();
+      return permission === 'all' || permission === 'expense';
+    });
+
+    // Send notifications to all eligible users
+    const notificationPromises = usersToNotify.map(async (user) => {
+      const settings = await ExpenseNotificationSettings.findOne({
+        where: { userId: user.id },
+      });
+
+      // Check if notifications are enabled for this user
+      if (settings && !settings.enabled) {
+        return; // Skip if notifications are disabled
+      }
+
+      // Check if notifyOnAdd is enabled (if settings exist)
+      if (settings && settings.notifyOnAdd === false) {
+        return; // Skip if notifyOnAdd is specifically disabled
+      }
+
+      // Send notification
       await sendExpenseNotification(
-        paidBy,
+        user.id,
         'New Expense Added',
-        `Expense "${description}" of ₹${parseFloat(amount).toFixed(2)} added to project "${project?.name || 'Unknown'}"`
+        `${paidByUser?.name || 'Someone'} added expense "${description}" of ₹${parseFloat(amount).toFixed(2)} to project "${project?.name || 'Unknown'}"`
       );
-    }
+    });
+
+    // Execute all notifications in parallel (don't wait for them to complete)
+    Promise.all(notificationPromises).catch(error => {
+      console.error('Error sending expense notifications to users:', error);
+    });
 
     res.status(201).json({
       success: true,

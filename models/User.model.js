@@ -36,10 +36,16 @@ const User = sequelize.define(
     fcmToken:{
         type:DataTypes.STRING,
     },
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
   },
   {
     timestamps: true, // Adds createdAt & updatedAt automatically
     tableName: "users", // Custom table name
+    paranoid: false, // We'll handle soft delete manually
   }
 );
 

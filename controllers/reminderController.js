@@ -40,7 +40,10 @@ export const getReminderByUserID = async (req, res) => {
       }
   
       const reminders = await Reminder.findAll({
-        where: { created_by },
+        where: { 
+          created_by,
+          deletedAt: null,
+        },
       });
   
       res.status(200).json({
@@ -62,7 +65,10 @@ export const getReminderByReminderID = async(req,res) => {
         }
       
         const reminders = await Reminder.findAll({
-            where: { id }, 
+            where: { 
+              id,
+              deletedAt: null,
+            }, 
           });        
 
           if (!reminders || reminders.length === 0) {
@@ -83,13 +89,21 @@ export const deleteReminderByID = async (req, res) => {
     try {
       const { id } = req.params;
   
-      const reminder = await Reminder.findByPk(id);
+      const reminder = await Reminder.findOne({
+        where: {
+          id,
+          deletedAt: null,
+        },
+      });
   
       if (!reminder) {
         return res.status(404).json({ error: 'Reminder not found' });
       }
   
-      await reminder.destroy();
+      // Soft delete: set deletedAt timestamp
+      await reminder.update({
+        deletedAt: new Date(),
+      });
   
       res.status(200).json({
         success: true,
@@ -105,7 +119,12 @@ export const deleteReminderByID = async (req, res) => {
       const { id } = req.params;
       const { name, date,description,created_by } = req.body;
       
-      const reminder = await Reminder.findByPk(id);
+      const reminder = await Reminder.findOne({
+        where: {
+          id,
+          deletedAt: null,
+        },
+      });
   
       if (!reminder) {
         return res.status(404).json({ error: 'Reminder not found' });

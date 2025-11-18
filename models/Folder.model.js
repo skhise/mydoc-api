@@ -14,10 +14,16 @@ const Folder = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
   },
   {
     timestamps: true, // Adds createdAt & updatedAt automatically
     tableName: "folders", // Custom table name
+    paranoid: false, // We'll handle soft delete manually
   }
 );
 

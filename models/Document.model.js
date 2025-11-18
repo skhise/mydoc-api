@@ -38,11 +38,17 @@ const Document = sequelize.define(
       type:DataTypes.INTEGER,
       allowNull:true,
       defaultValue:0
-    }
+    },
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
   },
   {
     timestamps: true, // Adds createdAt & updatedAt automatically
     tableName: "documents", // Custom table name
+    paranoid: false, // We'll handle soft delete manually
   }
 );
 

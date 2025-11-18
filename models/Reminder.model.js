@@ -36,11 +36,17 @@ const Reminder = sequelize.define(
     count:{
         type:DataTypes.INTEGER,
         defaultValue:0,
-    }
+    },
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
   },
   {
     timestamps: true, // Adds createdAt & updatedAt automatically
     tableName: "reminders", // Custom table name
+    paranoid: false, // We'll handle soft delete manually
   }
 );
 
