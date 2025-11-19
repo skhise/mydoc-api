@@ -29,7 +29,25 @@ async function sendExpenseNotification(userId, title, body) {
 
     const message = {
       token: user.fcmToken,
-      notification: { title, body },
+      data: {
+        title,
+        body,
+        type: 'expense',
+        timestamp: new Date().toISOString(),
+      },
+      android: {
+        priority: 'high',
+      },
+      apns: {
+        headers: {
+          'apns-priority': '10',
+        },
+        payload: {
+          aps: {
+            contentAvailable: true,
+          },
+        },
+      },
     };
 
     await admin.messaging().send(message);
