@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Middleware to check for secret key (optional but recommended for security)
 const validateCronSecret = (req, res, next) => {
-  const cronSecret = process.env.CRON_SECRET_KEY || 'your-secret-key-change-this';
+  const cronSecret = process.env.CRON_SECRET_KEY || 'itesmenotitsyou';
   const providedSecret = req.query.secret || req.headers['x-cron-secret'];
   
   if (providedSecret && providedSecret === cronSecret) {
@@ -18,6 +18,15 @@ const validateCronSecret = (req, res, next) => {
   
   next();
 };
+
+// Health check endpoint (no secret required for testing)
+router.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Cron endpoints are accessible",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Endpoint to trigger reminder cron job
 // Usage: GET /api/cron/reminder-check?secret=your-secret-key

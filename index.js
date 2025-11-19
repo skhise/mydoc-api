@@ -47,6 +47,12 @@ app.use((err, req, res, next) => {
   }
   next();
 });
+
+// Register cron routes FIRST (before other routes) to avoid authentication middleware conflicts
+// Cron routes don't require authentication - they use secret key validation instead
+app.use("/api/cron", cronRoutes);
+
+// Other authenticated routes
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/docs", documentRoutes);
@@ -54,7 +60,6 @@ app.use("/api", reminderRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/expense-notification-settings", expenseNotificationSettingsRoutes);
-app.use("/api/cron", cronRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 (async () => {
