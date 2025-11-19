@@ -27,7 +27,7 @@ export async function runReminderCheck() {
           { is_repeated: true },
           {
             days_before: {
-              [Op.gt]: 0,
+              [Op.gte]: 0,
             },
           },
         ],
