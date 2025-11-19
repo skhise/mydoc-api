@@ -98,13 +98,31 @@ export async function runReminderCheck() {
 async function sendNotification(token, title, body) {
   const message = {
     token,
-    notification: { title, body }
+    data: {
+      title,
+      body,
+      type: 'reminder',
+      timestamp: new Date().toISOString(),
+    },
+    android: {
+      priority: 'high',
+    },
+    apns: {
+      headers: {
+        'apns-priority': '10',
+      },
+      payload: {
+        aps: {
+          contentAvailable: true,
+        },
+      },
+    },
   };
 
   try {
     await admin.messaging().send(message);
-    console.log(`✅ Notification sent: ${title}`);
+    console.log(`✅ Reminder notification sent: ${title}`);
   } catch (err) {
-    console.error(`❌ Error sending notification:`, err);
+    console.error(`❌ Error sending reminder notification:`, err);
   }
 }
