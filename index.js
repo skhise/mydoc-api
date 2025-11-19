@@ -6,9 +6,14 @@ import reminderRoutes from "./routes/reminderRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import expenseNotificationSettingsRoutes from "./routes/expenseNotificationSettingsRoutes.js";
+import cronRoutes from "./routes/cronRoutes.js";
 import sequelize from "./config/db.config.js";
-import './crons/reminderCron.js';
-import './crons/expenseNotificationCron.js';
+
+// For shared hosting: Comment out these imports to disable automatic cron schedules
+// Cron jobs will be triggered via HTTP endpoints instead
+// Uncomment these if you're running on a VPS/dedicated server with continuous Node.js process
+// import './crons/reminderCron.js';
+// import './crons/expenseNotificationCron.js';
 
 import bcrypt from 'bcryptjs';
 import swaggerUi from 'swagger-ui-express';
@@ -49,6 +54,7 @@ app.use("/api", reminderRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/expense-notification-settings", expenseNotificationSettingsRoutes);
+app.use("/api/cron", cronRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 (async () => {

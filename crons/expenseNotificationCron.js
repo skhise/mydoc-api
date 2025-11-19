@@ -18,7 +18,9 @@ export async function runDailyExpenseSummary() {
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
 
-    // Get all users with daily summary enabled
+    console.log(`💰 Running daily expense summary check at ${currentHour}:${currentMinute.toString().padStart(2, '0')}`);
+
+    // Get all users with daily summary enabled (excluding soft-deleted users)
     const settings = await ExpenseNotificationSettings.findAll({
       where: {
         enabled: true,
@@ -28,25 +30,36 @@ export async function runDailyExpenseSummary() {
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'name', 'fcm_token'],
+          attributes: ['id', 'name', 'fcmToken'],
           required: true,
+          where: {
+            deletedAt: null,
+          },
         },
       ],
     });
 
+    console.log(`Found ${settings.length} users with daily summary enabled`);
+
     for (const setting of settings) {
-      if (!setting.user || !setting.user.fcm_token) continue;
+      if (!setting.user || !setting.user.fcmToken) {
+        console.log(`Skipping setting ${setting.id} - user not found or no FCM token`);
+        continue;
+      }
 
       // Parse the dailySummaryTime (format: "HH:MM")
-      const [summaryHour, summaryMinute] = setting.dailySummaryTime.split(':').map(Number);
+      const [summaryHour, summaryMinute] = (setting.dailySummaryTime || '18:00').split(':').map(Number);
 
       // Check if it's time to send the summary
       if (currentHour === summaryHour && currentMinute === 0) {
-        await sendDailyExpenseSummary(setting.user.id, setting.user.fcm_token);
+        console.log(`Sending daily summary to user ${setting.user.id} at ${summaryHour}:00`);
+        await sendDailyExpenseSummary(setting.user.id, setting.user.fcmToken);
       }
     }
+    
+    console.log('✅ Daily expense summary check completed');
   } catch (err) {
-    console.error('Error in daily expense summary cron:', err);
+    console.error('❌ Error in daily expense summary cron:', err);
   }
 }
 
@@ -107,8 +120,9 @@ async function sendDailyExpenseSummary(userId, fcmToken) {
     };
 
     await admin.messaging().send(message);
+    console.log(`✅ Daily expense summary sent to user ${userId}`);
   } catch (error) {
-    console.error('Error sending daily expense summary:', error);
+    console.error(`❌ Error sending daily expense summary to user ${userId}:`, error);
   }
 }
 

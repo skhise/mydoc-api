@@ -2,24 +2,51 @@ import Reminder from "../models/Reminder.model.js";
 
 export const createReminder = async (req, res) => {
     try {
-        const { name, date,description,created_by,is_repeated=false,days_before=0, } = req.body;
+        const { name, date, description, created_by, is_repeated = false, days_before = 0 } = req.body;
         if (!name || !date || !description) {
             return res.status(400).json({
+                success: false,
                 error: "All fields are required: name, date, description."
+            });
+        }
+        if (!created_by) {
+            return res.status(400).json({
+                success: false,
+                error: "created_by is required."
             });
         }
         const utcDate = new Date(`${date}`);
 
-        const reminder = await Reminder.create({ name, date:utcDate,description,created_by,is_repeated,days_before,count:0 });
-        res.status(201).json(reminder);
+        const reminder = await Reminder.create({ 
+            name, 
+            date: utcDate, 
+            description, 
+            created_by, 
+            is_repeated, 
+            days_before, 
+            count: 0 
+        });
+        
+        res.status(201).json({
+            success: true,
+            message: "Reminder created successfully",
+            reminder
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            success: false,
+            error: error.message 
+        });
     }
 };
 
 export const getAllReminder = async(req,res) =>{
     try {
-        const reminders = await Reminder.findAll();
+        const reminders = await Reminder.findAll({
+            where: {
+                deletedAt: null,
+            },
+        });
         res.status(200).json({
             success: true,
             message: "reminders fetched successfully",
