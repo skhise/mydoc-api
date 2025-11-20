@@ -65,7 +65,15 @@ export async function runDailyExpenseSummary() {
           userId: setting.user.id,
           summaryTime: `${summaryHour}:00`
         });
-        await sendDailyExpenseSummary(setting.user.id, setting.user.fcmToken);
+        const sent = await sendDailyExpenseSummary(setting.user.id, setting.user.fcmToken);
+        // If notification failed due to invalid token, clear it
+        if (!sent) {
+          await User.update(
+            { fcmToken: null },
+            { where: { id: setting.user.id } }
+          );
+          cronLogger.warn(`Invalid FCM token cleared for user ${setting.user.id}`);
+        }
       }
     }
     
@@ -80,6 +88,9 @@ export async function runDailyExpenseSummary() {
 
 async function sendDailyExpenseSummary(userId, fcmToken) {
   try {
+    if (!fcmToken) {
+      return false;
+    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -106,15 +117,31 @@ async function sendDailyExpenseSummary(userId, fcmToken) {
 
     if (expenses.length === 0) {
       // Send a message that no expenses were added today
-      const message = {
-        token: fcmToken,
-        notification: {
-          title: 'Daily Expense Summary',
-          body: 'No expenses were added today.',
+    const message = {
+      token: fcmToken,
+      data: {
+        title: 'Daily Expense Summary',
+        body: 'No expenses were added today.',
+        type: 'expense_summary',
+        timestamp: new Date().toISOString(),
+      },
+      android: {
+        priority: 'high',
+      },
+      apns: {
+        headers: {
+          'apns-priority': '10',
         },
-      };
-      await admin.messaging().send(message);
-      return;
+        payload: {
+          aps: {
+            contentAvailable: true,
+          },
+        },
+      },
+    };
+    await admin.messaging().send(message);
+    cronLogger.success(`Daily expense summary sent to user ${userId}: No expenses today`);
+    return true;
     }
 
     // Calculate total
@@ -131,7 +158,25 @@ async function sendDailyExpenseSummary(userId, fcmToken) {
 
     const message = {
       token: fcmToken,
-      notification: { title, body },
+      data: {
+        title,
+        body,
+        type: 'expense_summary',
+        timestamp: new Date().toISOString(),
+      },
+      android: {
+        priority: 'high',
+      },
+      apns: {
+        headers: {
+          'apns-priority': '10',
+        },
+        payload: {
+          aps: {
+            contentAvailable: true,
+          },
+        },
+      },
     };
 
     await admin.messaging().send(message);
@@ -142,6 +187,17 @@ async function sendDailyExpenseSummary(userId, fcmToken) {
     });
   } catch (error) {
     cronLogger.error(`Error sending daily expense summary to user ${userId}`, error);
+    // Log detailed error for SenderId mismatch debugging
+    if (error.code === 'messaging/invalid-argument' || error.message?.includes('SenderId') || error.message?.includes('sender-id')) {
+      cronLogger.error('SenderId mismatch detected. Check that:', {
+        errorCode: error.code,
+        errorMessage: error.message,
+        projectId: 'itsmyapp-b2f53',
+        projectNumber: '797229091241',
+        userId,
+        tokenPreview: fcmToken?.substring(0, 20) + '...'
+      });
+    }
   }
 }
 

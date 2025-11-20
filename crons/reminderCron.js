@@ -80,7 +80,15 @@ export async function runReminderCheck() {
             reminderId: r.id,
             reminderName: r.name
           });
-          await sendNotification(user.fcmToken, r.name, r.description, user.id, r.id);
+          const sent = await sendNotification(user.fcmToken, r.name, r.description, user.id, r.id);
+          // If notification failed due to invalid token, clear it
+          if (!sent) {
+            await User.update(
+              { fcmToken: null },
+              { where: { id: user.id } }
+            );
+            cronLogger.warn(`Invalid FCM token cleared for user ${user.id}`);
+          }
         } else {
           cronLogger.warn(`User ${r.created_by} not found or has no FCM token`, {
             userId: r.created_by,
@@ -137,7 +145,24 @@ async function sendNotification(token, title, body, userId = null, reminderId = 
       reminderId,
       title
     });
+    return true;
   } catch (err) {
     cronLogger.error(`Error sending reminder notification: ${title}`, err);
+    // Log detailed error for SenderId mismatch debugging
+    if (err.code === 'messaging/invalid-argument' || 
+        err.code === 'messaging/registration-token-not-registered' ||
+        err.message?.includes('SenderId') || 
+        err.message?.includes('sender-id') ||
+        err.message?.includes('Invalid registration token')) {
+      cronLogger.error('Invalid FCM token detected (SenderId mismatch or invalid token)', {
+        errorCode: err.code,
+        errorMessage: err.message,
+        projectId: 'itsmyapp-b2f53',
+        projectNumber: '797229091241',
+        userId,
+        tokenPreview: token?.substring(0, 20) + '...'
+      });
+    }
+    return false; // Return false to indicate failure
   }
 }

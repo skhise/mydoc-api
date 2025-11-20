@@ -51,8 +51,38 @@ async function sendExpenseNotification(userId, title, body) {
     };
 
     await admin.messaging().send(message);
+    console.log(`✅ Expense notification sent to user ${userId}: ${title}`);
   } catch (error) {
     console.error('Error sending expense notification:', error);
+    
+    // Handle SenderId mismatch or invalid token
+    if (error.code === 'messaging/invalid-argument' || 
+        error.code === 'messaging/registration-token-not-registered' ||
+        error.message?.includes('SenderId') || 
+        error.message?.includes('sender-id') ||
+        error.message?.includes('Invalid registration token')) {
+      
+      console.error('⚠️ Invalid FCM token detected. Clearing token from database.');
+      console.error('Details:', {
+        userId,
+        errorCode: error.code,
+        errorMessage: error.message,
+        projectId: 'itsmyapp-b2f53',
+        projectNumber: '797229091241',
+        tokenPreview: user?.fcmToken?.substring(0, 20) + '...'
+      });
+      
+      // Clear invalid token from database
+      try {
+        await User.update(
+          { fcmToken: null },
+          { where: { id: userId } }
+        );
+        console.log(`✅ Invalid FCM token cleared for user ${userId}`);
+      } catch (updateError) {
+        console.error('Error clearing invalid token:', updateError);
+      }
+    }
   }
 }
 
