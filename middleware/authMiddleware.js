@@ -1,6 +1,19 @@
 import jwt from 'jsonwebtoken';
 
 export const authenticateToken = (req, res, next) => {
+  // Skip token check for cron routes (they use secret key validation instead)
+  // Check both path and originalUrl to catch all variations
+  const isCronRoute = req.path.startsWith('/cron/') || 
+                      req.path.startsWith('/test-notification/') ||
+                      req.originalUrl.startsWith('/api/cron/') ||
+                      req.originalUrl.includes('/cron/') ||
+                      req.originalUrl.includes('/test-notification/');
+  
+  if (isCronRoute) {
+    // Skip authentication for cron routes
+    return next();
+  }
+  
   const openPaths = ['/auth/login', '/auth/forgot-password','/reset-pin']; // add any other routes you want to exclude
   
   // Skip token check for open paths

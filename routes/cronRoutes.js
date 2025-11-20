@@ -122,25 +122,33 @@ router.post("/test-notification/mobile/:mobile", validateCronSecret, async (req,
 });
 
 // Send test notification to all users with FCM tokens
-// Usage: POST /api/cron/test-notification/all?secret=your-secret-key
-// Body: { "title": "Custom Title", "body": "Custom Body" } (optional)
-router.post("/test-notification/all", validateCronSecret, async (req, res) => {
+// Usage: GET/POST /api/cron/test-notification/all?secret=your-secret-key
+// Body (for POST): { "title": "Custom Title", "body": "Custom Body" } (optional)
+const handleTestNotificationAll = async (req, res) => {
   try {
-    const { title, body } = req.body;
+    console.log('📤 Test notification endpoint called');
+    console.log('Request path:', req.path);
+    console.log('Request originalUrl:', req.originalUrl);
+    console.log('Request method:', req.method);
+    
+    // Support both GET (query params) and POST (body)
+    const title = req.body?.title || req.query?.title || 'Test Notification';
+    const body = req.body?.body || req.query?.body || 'This is a test notification from the server';
 
-    const result = await sendTestNotificationToAllUsers(
-      title || 'Test Notification',
-      body || 'This is a test notification from the server'
-    );
+    const result = await sendTestNotificationToAllUsers(title, body);
 
     res.status(200).json(result);
   } catch (error) {
+    console.error('Error in test notification endpoint:', error);
     res.status(500).json({
       success: false,
       error: error.message
     });
   }
-});
+};
+
+router.get("/test-notification/all", validateCronSecret, handleTestNotificationAll);
+router.post("/test-notification/all", validateCronSecret, handleTestNotificationAll);
 
 export default router;
 
