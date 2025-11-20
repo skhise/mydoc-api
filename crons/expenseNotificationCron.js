@@ -5,6 +5,7 @@ import User from '../models/User.model.js';
 import Expense from '../models/Expense.model.js';
 import Project from '../models/Project.model.js';
 import ExpenseNotificationSettings from '../models/ExpenseNotificationSettings.model.js';
+import cronLogger from './cronLogger.js';
 
 // Run daily at the user's configured time (default 6 PM)
 // This cron runs every hour and checks if it's time to send daily summaries
@@ -18,7 +19,10 @@ export async function runDailyExpenseSummary() {
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
 
-    console.log(`💰 Running daily expense summary check at ${currentHour}:${currentMinute.toString().padStart(2, '0')}`);
+    cronLogger.info(`💰 Running daily expense summary check at ${currentHour}:${currentMinute.toString().padStart(2, '0')}`, {
+      hour: currentHour,
+      minute: currentMinute
+    });
 
     // Get all users with daily summary enabled (excluding soft-deleted users)
     const settings = await ExpenseNotificationSettings.findAll({
@@ -39,11 +43,16 @@ export async function runDailyExpenseSummary() {
       ],
     });
 
-    console.log(`Found ${settings.length} users with daily summary enabled`);
+    cronLogger.info(`Found ${settings.length} users with daily summary enabled`, {
+      userCount: settings.length
+    });
 
     for (const setting of settings) {
       if (!setting.user || !setting.user.fcmToken) {
-        console.log(`Skipping setting ${setting.id} - user not found or no FCM token`);
+        cronLogger.warn(`Skipping setting ${setting.id} - user not found or no FCM token`, {
+          settingId: setting.id,
+          userId: setting.userId
+        });
         continue;
       }
 
@@ -52,14 +61,20 @@ export async function runDailyExpenseSummary() {
 
       // Check if it's time to send the summary
       if (currentHour === summaryHour && currentMinute === 0) {
-        console.log(`Sending daily summary to user ${setting.user.id} at ${summaryHour}:00`);
+        cronLogger.info(`Sending daily summary to user ${setting.user.id} at ${summaryHour}:00`, {
+          userId: setting.user.id,
+          summaryTime: `${summaryHour}:00`
+        });
         await sendDailyExpenseSummary(setting.user.id, setting.user.fcmToken);
       }
     }
     
-    console.log('✅ Daily expense summary check completed');
+    cronLogger.success('Daily expense summary check completed', {
+      checkedUsers: settings.length,
+      time: `${currentHour}:${currentMinute.toString().padStart(2, '0')}`
+    });
   } catch (err) {
-    console.error('❌ Error in daily expense summary cron:', err);
+    cronLogger.error('Error in daily expense summary cron', err);
   }
 }
 
@@ -120,9 +135,13 @@ async function sendDailyExpenseSummary(userId, fcmToken) {
     };
 
     await admin.messaging().send(message);
-    console.log(`✅ Daily expense summary sent to user ${userId}`);
+    cronLogger.success(`Daily expense summary sent to user ${userId}`, {
+      userId,
+      expenseCount,
+      totalAmount: total.toFixed(2)
+    });
   } catch (error) {
-    console.error(`❌ Error sending daily expense summary to user ${userId}:`, error);
+    cronLogger.error(`Error sending daily expense summary to user ${userId}`, error);
   }
 }
 

@@ -4,6 +4,7 @@ import { Op } from 'sequelize';
 import User from '../models/User.model.js';
 import Reminder from '../models/Reminder.model.js';
 import moment from 'moment';
+import cronLogger from './cronLogger.js';
 
 // Daily at 6 AM
 cron.schedule('0 6 * * *', async () => {
@@ -16,7 +17,7 @@ export async function runReminderCheck() {
   const todayStr = today.toISOString().split('T')[0];
   
   try {
-    console.log('🔔 Running reminder check cron job...');
+    cronLogger.info('🔔 Running reminder check cron job...');
     
     // Get all active (non-deleted) reminders
     const reminders = await Reminder.findAll({
@@ -34,7 +35,7 @@ export async function runReminderCheck() {
       },
     });
 
-    console.log(`Found ${reminders.length} reminders to check`);
+    cronLogger.info(`Found ${reminders.length} reminders to check`, { count: reminders.length });
 
     for (const r of reminders) {
       const reminderDateStr = moment(r.date).format('YYYY-MM-DD');
@@ -74,17 +75,27 @@ export async function runReminderCheck() {
         });
         
         if (user?.fcmToken) {
-          console.log(`Sending reminder notification to user ${user.id}: ${r.name}`);
-          await sendNotification(user.fcmToken, r.name, r.description);
+          cronLogger.info(`Sending reminder notification to user ${user.id}: ${r.name}`, {
+            userId: user.id,
+            reminderId: r.id,
+            reminderName: r.name
+          });
+          await sendNotification(user.fcmToken, r.name, r.description, user.id, r.id);
         } else {
-          console.log(`User ${r.created_by} not found or has no FCM token`);
+          cronLogger.warn(`User ${r.created_by} not found or has no FCM token`, {
+            userId: r.created_by,
+            reminderId: r.id
+          });
         }
       }
     }
 
-    console.log('✅ Reminder check completed');
+    cronLogger.success('Reminder check completed', {
+      totalReminders: reminders.length,
+      date: todayStr
+    });
   } catch (err) {
-    console.error('❌ Error in reminder cron:', err);
+    cronLogger.error('Error in reminder cron', err);
   }
 }
 
@@ -95,7 +106,7 @@ export async function runReminderCheck() {
 // })();
 
 
-async function sendNotification(token, title, body) {
+async function sendNotification(token, title, body, userId = null, reminderId = null) {
   const message = {
     token,
     data: {
@@ -121,8 +132,12 @@ async function sendNotification(token, title, body) {
 
   try {
     await admin.messaging().send(message);
-    console.log(`✅ Reminder notification sent: ${title}`);
+    cronLogger.success(`Reminder notification sent: ${title}`, {
+      userId,
+      reminderId,
+      title
+    });
   } catch (err) {
-    console.error(`❌ Error sending reminder notification:`, err);
+    cronLogger.error(`Error sending reminder notification: ${title}`, err);
   }
 }
