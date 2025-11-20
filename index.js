@@ -7,6 +7,7 @@ import projectRoutes from "./routes/projectRoutes.js";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import expenseNotificationSettingsRoutes from "./routes/expenseNotificationSettingsRoutes.js";
 import cronRoutes from "./routes/cronRoutes.js";
+import fcmRoutes from "./routes/fcmRoutes.js";
 import sequelize from "./config/db.config.js";
 
 // For shared hosting: Comment out these imports to disable automatic cron schedules
@@ -51,6 +52,9 @@ app.use((err, req, res, next) => {
 // Register cron routes FIRST (before other routes) to avoid authentication middleware conflicts
 // Cron routes don't require authentication - they use secret key validation instead
 app.use("/api/cron", cronRoutes);
+
+// FCM token management routes (for debugging and maintenance)
+app.use("/api/fcm", fcmRoutes);
 
 // Other authenticated routes
 app.use("/api/users", userRoutes);
